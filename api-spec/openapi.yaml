@@ -1,0 +1,920 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: Analyses
+    description: Video forensic analysis operations.
+  - name: Storage
+    description: Object storage upload and serving endpoints.
+  - name: Benchmarks
+    description: Labeled AI classification benchmark operations.
+  - name: Editor
+    description: Video editing and export operations.
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [Analyses]
+      summary: Get analysis dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /dashboard/ai-status:
+    get:
+      operationId: getAiProviderStatus
+      tags: [Analyses]
+      summary: Get safe AI provider capability and cost estimate
+      responses:
+        "200":
+          description: Provider status and pre-analysis estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiProviderStatus"
+  /benchmarks/samples:
+    get:
+      operationId: listBenchmarkSamples
+      tags: [Benchmarks]
+      summary: List the anonymized labeled benchmark set
+      responses:
+        "200":
+          description: Benchmark samples
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BenchmarkSample"
+  /benchmarks/report:
+    get:
+      operationId: getBenchmarkReport
+      tags: [Benchmarks]
+      summary: Get confusion matrix, class recall, and AI false positives
+      parameters:
+        - name: promptVersion
+          in: query
+          required: true
+          schema: { type: string }
+        - name: runGroup
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Benchmark report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenchmarkReport"
+  /benchmarks/regression:
+    get:
+      operationId: checkBenchmarkRegression
+      tags: [Benchmarks]
+      summary: Check a prompt version against minimum regression thresholds
+      parameters:
+        - name: promptVersion
+          in: query
+          required: true
+          schema: { type: string }
+        - name: runGroup
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Thresholds passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenchmarkRegression"
+        "422":
+          description: One or more thresholds failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenchmarkRegression"
+  /benchmarks/thresholds:
+    get:
+      operationId: getBenchmarkThresholds
+      tags: [Benchmarks]
+      summary: Get minimum prompt regression thresholds
+      responses:
+        "200":
+          description: Current thresholds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenchmarkThresholds"
+  /analyses:
+    get:
+      operationId: listAnalyses
+      tags: [Analyses]
+      summary: List video analyses
+      responses:
+        "200":
+          description: Video analysis list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Analysis"
+    post:
+      operationId: createAnalysis
+      tags: [Analyses]
+      summary: Create and start a video or image analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisInput"
+      responses:
+        "201":
+          description: Analysis queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "400":
+          description: Invalid analysis input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /analyses/{id}:
+    get:
+      operationId: getAnalysis
+      tags: [Analyses]
+      summary: Get an analysis detail
+      parameters:
+        - $ref: "#/components/parameters/AnalysisId"
+      responses:
+        "200":
+          description: Analysis detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: deleteAnalysis
+      tags: [Analyses]
+      summary: Delete an analysis
+      parameters:
+        - $ref: "#/components/parameters/AnalysisId"
+      responses:
+        "204":
+          description: Analysis deleted
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /analyses/{id}/reanalyze:
+    post:
+      operationId: reanalyzeVideo
+      tags: [Analyses]
+      summary: Queue an analysis again
+      parameters:
+        - $ref: "#/components/parameters/AnalysisId"
+      responses:
+        "200":
+          description: Analysis requeued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /analyses/{id}/preview:
+    get:
+      operationId: getAnalysisPreview
+      tags: [Analyses]
+      summary: Stream the original media preview
+      parameters:
+        - $ref: "#/components/parameters/AnalysisId"
+      responses:
+        "200":
+          description: Original image bytes or a browser-compatible preview of the first two minutes of video
+          content:
+            video/webm:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Analysis or source object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /analyses/{id}/stream:
+    get:
+      operationId: streamAnalysisSource
+      tags: [Analyses]
+      summary: Stream the durable original video with byte range support
+      parameters:
+        - $ref: "#/components/parameters/AnalysisId"
+      responses:
+        "200":
+          description: Complete source video
+          content:
+            video/*:
+              schema: { type: string, format: binary }
+        "206":
+          description: Requested byte range
+          content:
+            video/*:
+              schema: { type: string, format: binary }
+        "404":
+          description: Analysis or source object not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /analyses/{id}/verdict:
+    patch:
+      operationId: setManualVerdict
+      tags: [Analyses]
+      summary: Set a manual verdict for a disputed analysis
+      parameters:
+        - $ref: "#/components/parameters/AnalysisId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualVerdictInput"
+      responses:
+        "200":
+          description: Manual verdict saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "400":
+          description: Invalid verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /editor/export:
+    post:
+      operationId: exportEditedVideo
+      tags: [Editor]
+      summary: Render an edited working copy as MP4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoEditProject"
+      responses:
+        "200":
+          description: Rendered MP4 working copy
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+        "400":
+          description: Invalid project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "404":
+          description: Source not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [Storage]
+      summary: Request a presigned URL for video upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Invalid upload metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/public-objects/{filePath}:
+    get:
+      operationId: getPublicObject
+      tags: [Storage]
+      summary: Serve a public object
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [Storage]
+      summary: Serve an uploaded object
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+components:
+  parameters:
+    AnalysisId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    VideoEditClip:
+      type: object
+      required: [start, end, transition]
+      properties:
+        start: { type: number, minimum: 0 }
+        end: { type: number, exclusiveMinimum: 0 }
+        transition: { type: string, enum: [none, fade] }
+    VideoTextOverlay:
+      type: object
+      required: [text, start, end, x, y, size, color]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 240 }
+        start: { type: number, minimum: 0 }
+        end: { type: number, exclusiveMinimum: 0 }
+        x: { type: number, minimum: 0, maximum: 100 }
+        y: { type: number, minimum: 0, maximum: 100 }
+        size: { type: integer, minimum: 12, maximum: 96 }
+        color: { type: string, pattern: "^#[0-9a-fA-F]{6}$" }
+    VideoEditProject:
+      type: object
+      required: [analysisId, clips, filter, volume, muted, texts]
+      properties:
+        analysisId: { type: integer, minimum: 1 }
+        clips:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: "#/components/schemas/VideoEditClip" }
+        filter: { type: string, enum: [none, grayscale, warm, cool, contrast] }
+        volume: { type: number, minimum: 0, maximum: 2 }
+        muted: { type: boolean }
+        texts:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/VideoTextOverlay" }
+    BenchmarkVerdict:
+      type: string
+      enum: [ORIGINAL, UPRAVENO, UPRAVENO_AI, CELE_AI, NEJASNE]
+    BenchmarkSample:
+      type: object
+      required: [id, sampleKey, label, expectedClass, sourceFamily, mediaSha256, provenanceUri, labelEvidence, ambiguousCase, captureVersion, recipeJson, findingsJson, createdAt]
+      properties:
+        id: { type: integer }
+        sampleKey: { type: string }
+        label: { type: string }
+        expectedClass: { $ref: "#/components/schemas/BenchmarkVerdict" }
+        sourceFamily: { type: string }
+        mediaSha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        provenanceUri: { type: string }
+        labelEvidence: { type: string }
+        ambiguousCase: { type: boolean }
+        captureVersion: { type: string }
+        recipeJson: { type: object, additionalProperties: true }
+        findingsJson: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    BenchmarkRun:
+      type: object
+      required: [sampleKey, expectedClass, actualClass, confidence, model, promptVersion]
+      properties:
+        sampleKey: { type: string }
+        expectedClass: { $ref: "#/components/schemas/BenchmarkVerdict" }
+        actualClass: { $ref: "#/components/schemas/BenchmarkVerdict" }
+        confidence: { type: integer, minimum: 0, maximum: 100 }
+        model: { type: string }
+        promptVersion: { type: string }
+    BenchmarkClassMetric:
+      type: object
+      required: [total, correct, recall]
+      properties:
+        total: { type: integer }
+        correct: { type: integer }
+        recall: { type: number, minimum: 0, maximum: 1 }
+    BenchmarkThresholds:
+      type: object
+      required: [minimumOverallAccuracy, minimumMacroRecall, minimumPerClassRecall, maximumAiFalsePositiveRate]
+      properties:
+        minimumOverallAccuracy: { type: number }
+        minimumMacroRecall: { type: number }
+        minimumPerClassRecall: { type: number }
+        maximumAiFalsePositiveRate: { type: number }
+    BenchmarkReport:
+      type: object
+      required: [promptVersion, runGroup, totalRuns, scoredRuns, confusionMatrix, overallAccuracy, macroRecall, perClass, aiFalsePositiveRate, aiFalsePositives, unclearAccuracy]
+      properties:
+        promptVersion: { type: string }
+        runGroup: { type: string }
+        totalRuns: { type: integer }
+        scoredRuns: { type: integer }
+        confusionMatrix:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: { type: integer }
+        overallAccuracy: { type: number }
+        macroRecall: { type: number }
+        perClass:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/BenchmarkClassMetric" }
+        aiFalsePositiveRate: { type: number }
+        aiFalsePositives:
+          type: array
+          items: { $ref: "#/components/schemas/BenchmarkRun" }
+        unclearAccuracy: { type: number }
+    BenchmarkRegression:
+      type: object
+      required: [promptVersion, runGroup, passed, failures, missingSampleKeys, thresholds, report]
+      properties:
+        promptVersion: { type: string }
+        runGroup: { type: string }
+        passed: { type: boolean }
+        failures: { type: array, items: { type: string } }
+        missingSampleKeys: { type: array, items: { type: string } }
+        thresholds: { $ref: "#/components/schemas/BenchmarkThresholds" }
+        report:
+          type: object
+          additionalProperties: true
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    AnalysisInput:
+      type: object
+      required: [name, objectPath, size, contentType, fileHash]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        objectPath:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+        fileHash:
+          type: string
+          pattern: "^[a-fA-F0-9]{64}$"
+    ManualVerdictInput:
+      type: object
+      required: [verdict]
+      properties:
+        verdict:
+          type: string
+          enum: [ORIGINAL, UPRAVENO, UPRAVENO_AI, CELE_AI, NEJISTE]
+    Evidence:
+      type: object
+      required: [category, title, detail, severity]
+      properties:
+        category:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+        timestamp:
+          type: ["string", "null"]
+        timestampSeconds:
+          type: ["number", "null"]
+          minimum: 0
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        regions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImageRegion"
+    ImageRegion:
+      type: object
+      required: [x, y, width, height, score, label]
+      properties:
+        x:
+          type: integer
+          minimum: 0
+        y:
+          type: integer
+          minimum: 0
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        label:
+          type: string
+    MetadataSummary:
+      type: object
+      required: [container, codec, duration, createdAt, modifiedAt, encoder, editingSoftware]
+      properties:
+        container:
+          type: string
+        codec:
+          type: string
+        duration:
+          type: number
+        createdAt:
+          type: ["string", "null"]
+        modifiedAt:
+          type: ["string", "null"]
+        encoder:
+          type: ["string", "null"]
+        bitrate:
+          type: ["integer", "null"]
+        frameRate:
+          type: ["string", "null"]
+        resolution:
+          type: ["string", "null"]
+        editingSoftware:
+          $ref: "#/components/schemas/EditingSoftware"
+        allMetadata:
+          type: object
+          additionalProperties: true
+    EditingSoftware:
+      type: object
+      required: [detected, name, source, rawEncoder, confidence, evidence]
+      properties:
+        detected:
+          type: boolean
+        name:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+          description: tag source, tag_absent, or no_match
+        rawEncoder:
+          type: ["string", "null"]
+        confidence:
+          type: ["string", "null"]
+        evidence:
+          type: ["string", "null"]
+    PipelineStep:
+      type: object
+      required: [stepName, stepStatus, resultJson, errorMessage]
+      properties:
+        stepName:
+          type: string
+        stepStatus:
+          type: string
+          enum: [OK, NEDOSTUPNE, CHYBA]
+        resultJson:
+          type: ["object", "null"]
+          additionalProperties: true
+        errorMessage:
+          type: ["string", "null"]
+    InterpretResult:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [ORIGINAL, UPRAVENO, UPRAVENO_AI, CELE_AI, NEJASNE]
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+        typ_manipulace:
+          type: array
+          items:
+            type: string
+        casove_useky:
+          type: array
+          items:
+            type: string
+        podezrele_oblasti:
+          type: array
+          items:
+            type: string
+        zduvodneni:
+          type: string
+        nejasnosti:
+          type: string
+    VerifierResult:
+      type: object
+      properties:
+        shoda_s_analytikem:
+          type: boolean
+        upravena_jistota_procenta:
+          type: integer
+          minimum: 0
+          maximum: 100
+        rozpory:
+          type: array
+          items:
+            type: string
+        potvrzena_zjisteni:
+          type: array
+          items:
+            type: string
+        finalni_status:
+          type: string
+          enum: [POTVRZENO, SPORNE, NEJISTE]
+        komentar:
+          type: string
+    Analysis:
+      type: object
+      required: [id, name, status, verdict, confidence, createdAt, updatedAt, evidenceCount, metadata, mediaType, pipelineSteps, aiUsage, progressPercent, progressPhase, progressPhaseLabel, analysisStartedAt, elapsedSeconds, etaSeconds, progressEstimated]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+          enum: [queued, analyzing, complete, failed]
+        verdict:
+          type: string
+          enum: [ORIGINÁL, UPRAVENO, UPRAVENO_AI, CELE_AI, NEURČENO]
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        progressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        progressPhase:
+          type: ["string", "null"]
+          enum: [preparation, technical, evidence, interpret, verifier, finalization, null]
+        progressPhaseLabel:
+          type: ["string", "null"]
+        analysisStartedAt:
+          type: ["string", "null"]
+          format: date-time
+        elapsedSeconds:
+          type: integer
+          minimum: 0
+        etaSeconds:
+          type: ["integer", "null"]
+          minimum: 0
+        progressEstimated:
+          type: boolean
+        evidenceCount:
+          type: integer
+        metadata:
+          $ref: "#/components/schemas/MetadataSummary"
+        mediaType:
+          type: string
+          enum: [video, image]
+        pipelineSteps:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStep"
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evidence"
+        objectPath:
+          type: ["string", "null"]
+        reportHtml:
+          type: ["string", "null"]
+        fileHash:
+          type: ["string", "null"]
+        finalStatus:
+          type: ["string", "null"]
+          enum: [POTVRZENO, SPORNE, NEJISTE, CHYBA_API, null]
+        interpretResult:
+          oneOf:
+            - $ref: "#/components/schemas/InterpretResult"
+            - type: "null"
+        verifierResult:
+          oneOf:
+            - $ref: "#/components/schemas/VerifierResult"
+            - type: "null"
+        apiError:
+          type: ["string", "null"]
+        manualVerdict:
+          type: ["string", "null"]
+          enum: [ORIGINAL, UPRAVENO, UPRAVENO_AI, CELE_AI, NEJISTE, null]
+        estimatedCostUsd:
+          type: number
+        aiUsage:
+          type: object
+          required: [interpretInputTokens, interpretOutputTokens, interpretCostUsd, verifierInputTokens, verifierOutputTokens, verifierCostUsd]
+          properties:
+            interpretInputTokens: { type: ["integer", "null"], minimum: 0 }
+            interpretOutputTokens: { type: ["integer", "null"], minimum: 0 }
+            interpretCostUsd: { type: ["number", "null"], minimum: 0 }
+            verifierInputTokens: { type: ["integer", "null"], minimum: 0 }
+            verifierOutputTokens: { type: ["integer", "null"], minimum: 0 }
+            verifierCostUsd: { type: ["number", "null"], minimum: 0 }
+    DashboardSummary:
+      type: object
+      required: [total, originals, edited, analyzing, needsReview, averageConfidence, monthlyCostUsd, recent]
+      properties:
+        total:
+          type: integer
+        originals:
+          type: integer
+        edited:
+          type: integer
+        analyzing:
+          type: integer
+        needsReview:
+          type: integer
+        averageConfidence:
+          type: integer
+        monthlyCostUsd:
+          type: number
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/Analysis"
+    TokenRange:
+      type: object
+      required: [low, typical, high]
+      properties:
+        low: { type: integer, minimum: 0 }
+        typical: { type: integer, minimum: 0 }
+        high: { type: integer, minimum: 0 }
+    CostRange:
+      type: object
+      required: [low, typical, high]
+      properties:
+        low: { type: number, minimum: 0 }
+        typical: { type: number, minimum: 0 }
+        high: { type: number, minimum: 0 }
+    AgentCostEstimate:
+      type: object
+      required: [inputTokens, outputTokens, usd]
+      properties:
+        inputTokens: { $ref: "#/components/schemas/TokenRange" }
+        outputTokens: { $ref: "#/components/schemas/TokenRange" }
+        usd: { $ref: "#/components/schemas/CostRange" }
+    AiProviderStatus:
+      type: object
+      required: [provider, model, configured, state, creditStatus, lastChecked, lastSuccess, lastFailure, failureCode, costEstimate]
+      properties:
+        provider: { type: string, enum: [Anthropic, OpenAI] }
+        model: { type: string }
+        configured: { type: boolean }
+        state: { type: string, enum: [ready, blocked, degraded, unknown, not_configured] }
+        creditStatus: { type: string, enum: [available, exhausted, unknown] }
+        lastChecked: { type: string, format: date-time }
+        lastSuccess: { type: ["string", "null"], format: date-time }
+        lastFailure: { type: ["string", "null"], format: date-time }
+        failureCode: { type: ["string", "null"] }
+        costEstimate:
+          type: object
+          required: [basis, disclaimer, interpret, verifier, total]
+          properties:
+            basis: { type: string, enum: [historical, default] }
+            disclaimer: { type: string }
+            interpret: { $ref: "#/components/schemas/AgentCostEstimate" }
+            verifier: { $ref: "#/components/schemas/AgentCostEstimate" }
+            total:
+              type: object
+              required: [inputTokens, outputTokens, usd]
+              properties:
+                inputTokens: { $ref: "#/components/schemas/TokenRange" }
+                outputTokens: { $ref: "#/components/schemas/TokenRange" }
+                usd: { $ref: "#/components/schemas/CostRange" }
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath, metadata]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+        objectPath:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
