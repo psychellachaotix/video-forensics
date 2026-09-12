@@ -1,12 +1,74 @@
 {
-  "name": "@workspace/api-zod",
-  "version": "0.0.0",
+  "name": "@workspace/video-forensics-desktop",
+  "version": "1.0.2",
   "private": true,
+  "author": "Video Forensics",
+  "description": "Lokální desktopová aplikace Video Forensics pro Windows",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "pnpm run build:main && node scripts/dev.mjs",
+    "dev:renderer": "vite --config vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:renderer": "vite build --config vite.config.ts",
+    "build:main": "node -e \"const fs=require('node:fs');fs.rmSync('dist/main',{recursive:true,force:true});fs.rmSync('dist/tsconfig.main.tsbuildinfo',{force:true})\" && tsc -p tsconfig.main.json",
+    "build": "pnpm run build:renderer && pnpm run build:main",
+    "dist:win": "pnpm run build && electron-builder --win --x64",
+    "test": "node --experimental-strip-types --test src/shared/*.test.ts",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "dependencies": {
-    "zod": "catalog:"
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "electron": "39.8.10",
+    "electron-builder": "26.15.3",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "~5.9.3",
+    "vite": "catalog:"
+  },
+  "build": {
+    "appId": "cz.videoforensics.desktop",
+    "productName": "Video Forensics",
+    "asar": true,
+    "forceCodeSigning": false,
+    "asarUnpack": [
+      "resources/**/*",
+      "dist/main/binaries/**/*"
+    ],
+    "files": [
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "resources/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/binaries",
+        "to": "binaries",
+        "filter": ["**/*"]
+      }
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "artifactName": "Video-Forensics-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Video-Forensics-${version}-${arch}-portable.${ext}"
+    }
   }
 }
