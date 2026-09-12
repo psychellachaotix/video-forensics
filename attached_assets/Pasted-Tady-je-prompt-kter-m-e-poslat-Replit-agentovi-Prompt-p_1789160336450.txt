@@ -1,0 +1,38 @@
+Tady je prompt, který můžeš poslat Replit agentovi:
+
+Prompt pro Replit Agent — rozšíření navigace pracovního prostoru:
+
+V levém panelu pod stávající položkou "Analytický pracovní prostor" přidej do menu čtyři nové položky ve stejném vizuálním stylu (stejná ikona-styl, stejný font, stejné odsazení jako u existující položky):
+
+1. Přehrávač videa
+
+Nová položka v menu, po kliknutí povede na novou stránku /prehravac.
+Vytvoř na téhle stránce jednoduchý video přehrávač: nahrání/výběr souboru z těch, co už byly nahrány do systému (ze stejného úložiště, kam se ukládají soubory přes "Prozkoumat záznam"), standardní ovládací prvky (play/pauza, časová osa, hlasitost, celá obrazovka).
+Přidej možnost přehrávat frame-by-frame (krok vpřed/vzad po jednotlivých snímcích) — užitečné pro kontrolu podezřelých časových úseků z analýzy.
+Pokud je vybrané video už analyzované, zobraz na časové ose značky v místech, kde byly nalezeny podezřelé úseky (ze strihy/podezrele_useky dat).
+
+2. Editace videa
+
+Nová položka v menu, po kliknutí povede na novou stránku /editor-videa.
+Vytvoř základní video editor s funkcemi: ořez délky (trim), odebrání úseku (cut), změna rychlosti přehrávání, export výsledku.
+Přidej i funkci překrytí dvou video stop s posuvníkem "% průhlednosti" (0–100 %) mezi nimi (přes ffmpeg blend/overlay filtr).
+Přidej funkci překrytí dvou audio stop se samostatnými posuvníky hlasitosti pro každou stopu (0–100 %) (přes ffmpeg amix filtr).
+Tlačítko "Exportovat výsledek" uloží nový soubor do úložiště.
+Označ tuhle stránku v UI jako nástroj pro vytváření testovacích/kontrolních vzorků, ne jako hlavní analytickou funkci.
+
+3. Editor obrázku
+
+Nová položka v menu, po kliknutí povede na novou stránku /editor-obrazku.
+Vytvoř základní obrázkový editor: ořez (crop), úprava jasu/kontrastu/barev, jednoduchý nástroj pro vymazání/překrytí oblasti (obdélníkový výběr nebo štětec), export výsledku.
+Použij k tomu Pillow/OpenCV na backendu.
+
+4. Výstupy agentů
+
+Nová položka v menu, po kliknutí povede na novou stránku /vystupy-agentu.
+Zobraz na téhle stránce chronologický seznam veškeré komunikace mezi AI agenty (Interpret a Verifier) napříč všemi analyzovanými soubory — tedy surová data poslaná agentovi, jeho JSON odpověď, a totéž pro Verifiera, u každého záznamu s časovým razítkem a odkazem na to, ke kterému souboru se analýza vztahuje.
+Přidej tlačítko "Vymazat historii" (u jednotlivého záznamu i hromadné "Vymazat vše") — po potvrzení (confirm dialog, ať se to nesmaže omylem) trvale odstraní vybrané záznamy komunikace z databáze, aby se zabránilo neomezenému růstu uložených dat.
+Přidej i filtr/vyhledávání podle názvu souboru nebo data, ať se v tom dá při větším množství záznamů rychle orientovat.
+
+Chceš, ať k tomu ještě doplním databázové schéma pro ukládání téhle historie komunikace agentů (tabulku, kterou zmiňuje bod 4), aby to Replit agent rovnou zakomponoval podle stejné struktury jako zbytek databáze?
+
+ano a dej 

@@ -1,0 +1,69 @@
+-- Tabulka nahraných videí
+CREATE TABLE videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename TEXT NOT NULL,
+    file_hash TEXT NOT NULL UNIQUE,          -- SHA-256 hash pro cachování
+    file_size_bytes INTEGER,
+    upload_timestamp TEXT NOT NULL,           -- ISO formát
+    original_path TEXT,                       -- cesta k uloženému souboru
+    status TEXT DEFAULT 'NAHRANO'             -- NAHRANO / ZPRACOVAVA_SE / HOTOVO / CHYBA
+);
+
+-- Tabulka surových dat z jednotlivých analytických kroků
+CREATE TABLE raw_analysis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id INTEGER NOT NULL,
+    step_name TEXT NOT NULL,                  -- 'metadata' / 'komprese' / 'strihy' / 'snimky' / 'audio' / 'barvy'
+    step_status TEXT NOT NULL,                -- 'OK' / 'NEDOSTUPNE' / 'CHYBA'
+    result_json TEXT,                         -- surová data ve formátu JSON
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (video_id) REFERENCES videos(id)
+);
+
+-- Tabulka výsledků od AI agentů
+CREATE TABLE ai_analysis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id INTEGER NOT NULL,
+    prompt_version TEXT NOT NULL,             -- např. 'v1.0'
+    
+    -- Interpret agent
+    interpret_result_json TEXT,               -- celý JSON výstup
+    interpret_input_tokens INTEGER,
+    interpret_output_tokens INTEGER,
+    interpret_cost_usd REAL,
+    
+    -- Verifier agent
+    verifier_result_json TEXT,
+    verifier_input_tokens INTEGER,
+    verifier_output_tokens INTEGER,
+    verifier_cost_usd REAL,
+    
+    -- Finální stav
+    finalni_status TEXT,                      -- POTVRZENO / SPORNE / NEJISTE
+    manualni_verdikt TEXT,                    -- NULL / ORIGINAL / UPRAVENO / NEJISTE (ruční rozhodnutí uživatele)
+    
+    created_at TEXT NOT NULL,
+    retry_count INTEGER DEFAULT 0,
+    api_error TEXT,                           -- pokud selhalo natrvalo
+    
+    FOREIGN KEY (video_id) REFERENCES videos(id)
+);
+
+-- Tabulka pro souhrnné sledování nákladů (volitelné, pro rychlé měsíční přehledy)
+CREATE TABLE cost_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ai_analysis_id INTEGER NOT NULL,
+    agent_type TEXT NOT NULL,                 -- 'interpret' / 'verifier'
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    cost_usd REAL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (ai_analysis_id) REFERENCES ai_analysis(id)
+);
+
+-- Indexy pro rychlé vyhledávání
+CREATE INDEX idx_videos_hash ON videos(file_hash);
+CREATE INDEX idx_ai_analysis_video ON ai_analysis(video_id);
+CREATE INDEX idx_ai_analysis_status ON ai_analysis(finalni_status);
+CREATE INDEX idx_raw_analysis_video ON raw_analysis(video_id);

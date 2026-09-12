@@ -1,0 +1,40 @@
+Doplnění k předchozímu zadání — podpora obrázků, základní editor a zobrazení metadat na jedno kliknutí:
+
+1. Rozšíření o analýzu obrázků (ne jen videa)
+
+Aplikace by měla přijímat i statické obrázky (jpg, png, webp) a analyzovat je podobným způsobem jako video, jen s přizpůsobenou sadou kroků:
+
+Metadata (EXIF) — datum pořízení, model fotoaparátu/telefonu, GPS souřadnice (pokud jsou), použitý software při posledním uložení (Photoshop, GIMP, Snapseed apod.).
+Error Level Analysis (ELA) — projeď obrázek přes ELA algoritmus (rozdílná komprese v místech, kde byl obrázek upravován, se projeví jako světlejší/tmavší oblasti).
+Detekce klonovaných oblastí (copy-move forgery) — stejný princip jako u videa, jen na jednom snímku.
+Analýza šumových vzorů — nekonzistentní šum mezi částmi obrázku často odhalí vloženou/vymazanou oblast.
+Tyto výsledky pošli do stejné dvoufázové AI architektury (Interpret + Verifier), jen s upraveným promptem, který zmiňuje "obrázek" místo "video" a vynechává audio/framerate specifické části.
+
+2. Základní editor videa/obrázku v aplikaci
+
+Přidej jednoduchý vestavěný editor (ne pro vytváření manipulací, ale pro základní přípravu/úpravu souborů před analýzou nebo pro vytváření testovacích/kontrolních vzorků, o kterých jsme mluvili dřív — abych si mohla sama vytvořit uměle upravené video a otestovat, jestli to systém pozná):
+
+Pro video:
+
+Ořez délky (trim) — nastavit začátek/konec.
+Základní střih (odebrání úseku).
+Změna rychlosti přehrávání.
+Export do nového souboru (pomocí ffmpeg na pozadí).
+
+Pro obrázek:
+
+Ořez (crop).
+Základní úpravy jasu/kontrastu/barev.
+Možnost vymazat/překrýt oblast (jednoduchý štětec nebo obdélníkový výběr) — užitečné pro vytvoření testovacího "upraveného" vzorku.
+Export do nového souboru.
+
+Použij pro to jednoduché existující knihovny (např. moviepy pro video, Pillow/OpenCV pro obrázky) — nemusí to být pokročilý profesionální editor, jen základní nástroj přímo v UI, ať nemusím přepínat do jiné aplikace.
+
+3. Zobrazení všech metadat na jedno kliknutí
+
+U každého nahraného videa/obrázku přidej v UI tlačítko "Zobrazit metadata", které po kliknutí otevře přehledné okno/panel se všemi technickými informacemi vytaženými z souboru najednou:
+
+Kompletní EXIF/metadata výpis (ne jen to, co používá analýza — úplně všechno, co soubor obsahuje).
+Formátováno čitelně (tabulka klíč → hodnota), ne jako surový JSON.
+Možnost jedním tlačítkem zkopírovat/stáhnout kompletní metadata jako textový/JSON soubor.
+Použij k tomu exiftool -j (vrátí kompletní JSON se všemi dostupnými poli) a v UI ho jen hezky vyrenderuj.

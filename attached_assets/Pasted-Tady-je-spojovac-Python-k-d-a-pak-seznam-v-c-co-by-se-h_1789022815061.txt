@@ -1,0 +1,76 @@
+Tady je spojovací Python kód a pak seznam věcí, co by se hodily přidat:
+
+Python kód — orchestrace obou agentů
+python
+import anthropic
+import json
+import os
+from datetime import datetime
+
+client = anthropic.Anthropic()  # API klíč se načte z env proměnné ANTHROPIC_API_KEY
+
+INTERPRET_SYSTEM_PROMPT = """...""" # sem vlož Interpret system prompt
+VERIFIER_SYSTEM_PROMPT = """...."""  # sem vlož Verifier system prompt
+
+
+def run_interpret_agent(raw_data: dict) -> dict:
+    """První průchod – navrhne verdikt na základě surových dat."""
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2000,
+        temperature=0,
+        system=INTERPRET_SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": f"Zde jsou nálezy z automatizované analýzy videa:\n\n{json.dumps(raw_data, ensure_ascii=False, indent=2)}"
+            }
+        ]
+    )
+    text = message.content[0].text.strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+    return json.loads(text)
+
+
+def run_verifier_agent(raw_data: dict, interpret_result: dict) -> dict:
+    """Druhý průchod – nezávisle ověří závěr prvního agenta."""
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1500,
+        temperature=0,
+        system=VERIFIER_SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"Surová data:\n{json.dumps(raw_data, ensure_ascii=False, indent=2)}\n\n"
+                    f"Závěr analytika:\n{json.dumps(interpret_result, ensure_ascii=False, indent=2)}"
+                )
+            }
+        ]
+    )
+    text = message.content[0].text.strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+    return json.loads(text)
+
+
+def analyze_video(video_path: str, raw_data: dict) -> dict:
+    """Hlavní pipeline – spustí oba agenty a sestaví finální report."""
+    try:
+        interpret_result = run_interpret_agent(raw_data)
+    except (json.JSONDecodeError, anthropic.APIError) as e:
+        return {"error": f"Interpret agent selhal: {str(e)}"}
+
+    try:
+        verifier_result = run_verifier_agent(raw_data, interpret_result)
+    except (json.JSONDecodeError, anthropic.APIError) as e:
+        return {"error": f"Verifier agent selhal: {str(e)}"}
+
+    final_report = {
+        "video": os.path.basename(video_path),
+        "timestamp": datetime.utcnow().isoformat(),
+        "interpret": interpret_result,
+        "verifier": verifier_result,
+        "finalni_status": verifier_result.get("finalni_status", "NEJISTE"),
+    }
+    return final_report

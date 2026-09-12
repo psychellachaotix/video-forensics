@@ -1,0 +1,34 @@
+Mazání záznamu přes DELETE FROM agent_komunikace WHERE id = ? (jednotlivě) nebo DELETE FROM agent_komunikace (vše) po potvrzení v UI.
+
+Kompletní prompt pro Replit Agent
+
+Rozšiř existující aplikaci (Video Forensics) o novou navigaci v levém panelu. Pod stávající položku "Analytický pracovní prostor" přidej čtyři nové položky ve stejném vizuálním stylu (stejná ikona-styl, font, odsazení):
+
+1. Přehrávač videa (/prehravac)
+
+Video přehrávač s výběrem souboru z existujícího úložiště (stejné soubory jako v "Prozkoumat záznam").
+Standardní ovládání: play/pauza, časová osa, hlasitost, celá obrazovka.
+Frame-by-frame krokování (vpřed/vzad po jednotlivých snímcích).
+Pokud je video analyzované, zobraz na časové ose značky v místech podezřelých úseků (z strihy/podezrele_useky dat).
+
+2. Editace videa (/editor-videa)
+
+Ořez délky (trim), odebrání úseku (cut), změna rychlosti přehrávání, export výsledku.
+Překrytí dvou video stop s posuvníkem "% průhlednosti" (0–100 %) — přes ffmpeg blend/overlay filtr.
+Překrytí dvou audio stop se samostatnými posuvníky hlasitosti pro každou stopu (0–100 %) — přes ffmpeg amix filtr.
+Tlačítko "Exportovat výsledek" uloží nový soubor do úložiště.
+Označ v UI jako nástroj pro vytváření testovacích/kontrolních vzorků, ne jako hlavní analytickou funkci.
+Při vytvoření testovacího vzorku ulož "recept" (zdrojové soubory, hodnoty %, výsledný soubor, očekávaný výsledek) do tabulky test_samples (viz schéma níže).
+
+3. Editor obrázku (/editor-obrazku)
+
+Ořez (crop), úprava jasu/kontrastu/barev, nástroj pro vymazání/překrytí oblasti (obdélníkový výběr nebo štětec), export výsledku.
+Použij Pillow/OpenCV na backendu.
+
+4. Výstupy agentů (/vystupy-agentu)
+
+Chronologický seznam veškeré komunikace mezi AI agenty (Interpret a Verifier) napříč všemi analyzovanými soubory: surová data poslaná agentovi, jeho JSON odpověď, totéž pro Verifiera, s časovým razítkem a odkazem na soubor, ke kterému se vztahuje.
+Tlačítko "Vymazat historii" u jednotlivého záznamu i hromadné "Vymazat vše" — po potvrzovacím dialogu trvale odstraní záznamy z databáze.
+Filtr/vyhledávání podle názvu souboru nebo data.
+
+Databázové rozšíření:

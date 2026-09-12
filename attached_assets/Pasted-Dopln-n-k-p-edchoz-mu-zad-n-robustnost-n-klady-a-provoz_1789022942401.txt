@@ -1,0 +1,41 @@
+Doplnění k předchozímu zadání — robustnost, náklady a provozní vylepšení:
+
+1. Cachování podle hashe souboru
+
+Při nahrání videa spočítej SHA-256 hash celého souboru (hashlib.sha256).
+Před spuštěním analýzy zkontroluj v databázi, jestli už existuje záznam se stejným hashem.
+Pokud ano, vrať uložený výsledek okamžitě bez nového volání API (ušetří peníze i čas při náhodném duplicitním nahrání).
+
+2. Fronta pro sporné/nejisté případy
+
+V UI přidej samostatnou záložku/sekci "K ruční kontrole", která zobrazuje všechny záznamy se finalni_status rovným SPORNE nebo NEJISTE.
+U každého záznamu v této frontě umožni uživateli ručně nastavit finální rozhodnutí (tlačítka "Označit jako originál" / "Označit jako upravené" / "Nechat nejisté") — toto ruční rozhodnutí ulož zvlášť jako manualni_verdikt.
+
+3. Ošetření chybějících nebo poškozených dat
+
+Každý analytický krok (metadata, komprese, střihy, snímky, audio, barvy) musí být obalený v try/except.
+Pokud některý krok selže nebo vrátí prázdná data, neházej výjimku celé pipeline — místo toho zaznamenej u daného kroku "status": "NEDOSTUPNE" a pokračuj s ostatními daty.
+Pokud selže víc než polovina analytických kroků, agent Interpret by měl automaticky vrátit verdikt: "NEJASNE" s vysvětlením, že podkladová data byla nedostatečná — nikdy nehádat naslepo.
+
+4. Validace vstupu
+
+Omez maximální velikost nahrávaného souboru (např. 2 GB, uprav dle potřeby).
+Povol pouze formáty mp4, mov, avi, mkv — ostatní odmítni s jasnou chybovou hláškou.
+Před spuštěním celé pipeline zkontroluj, že soubor je skutečně přehratelné video (ne poškozený/prázdný soubor) pomocí rychlé kontroly přes ffprobe.
+
+5. Sledování nákladů
+
+U každého volání Claude API (Interpret i Verifier) zaznamenej do databáze počet vstupních a výstupních tokenů (dostupné v response.usage.input_tokens a response.usage.output_tokens).
+Z toho spočítej odhadovanou cenu v USD podle aktuálního ceníku a ulož ji k danému záznamu.
+V UI přidej jednoduchý přehled "Celkové náklady tento měsíc" jako součet všech uložených cen.
+
+6. Verzování pipeline
+
+Ulož ke každému system promptu (Interpret i Verifier) konstantu PROMPT_VERSION (např. "v1.0").
+U každého výsledku v databázi ulož, jakou verzí promptu byl vytvořen.
+Při budoucí úpravě promptů zvyš verzi — umožní to zpětně rozlišit, které výsledky vznikly podle starších pravidel, kdyby bylo potřeba je přehodnotit.
+
+7. Retry logika při selhání API
+
+Pokud volání Claude API selže kvůli síťové chybě nebo rate limitu (anthropic.APIConnectionError, anthropic.RateLimitError), zkus automaticky max. 2 opakování s krátkou prodlevou (např. 2 a 5 sekund) před tím, než záznam označíš jako trvale neúspěšný.
+Trvale neúspěšné analýzy ulož se statusem CHYBA_API a umožni uživateli je ručně znovu spustit tlačítkem v UI.

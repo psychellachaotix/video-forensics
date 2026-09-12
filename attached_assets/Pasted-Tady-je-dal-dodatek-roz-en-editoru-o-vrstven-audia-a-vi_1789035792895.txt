@@ -1,0 +1,29 @@
+Tady je další dodatek — rozšíření editoru o vrstvení audia a videa s ovládáním hlasitosti/průhlednosti:
+
+Doplnění k předchozímu zadání — vícevrstvé audio a video s ovládáním přes posuvníky:
+
+1. Audio overlay (překrytí dvou audio stop)
+
+Umožni nahrát dvě audio stopy (nebo jednu video + jednu extra audio stopu) a přehrávat je současně namixované do jednoho výstupu.
+Ke každé stopě přidej samostatný posuvník hlasitosti (0–100 %, nezávisle na sobě) — takže třeba stopa A na 70 % a stopa B na 30 %, obě hrají zároveň v daném poměru.
+V UI real-time náhled (nebo alespoň možnost "přehrát náhled" před finálním exportem), ať uživatel slyší výsledek před uložením.
+Technicky: použij ffmpeg filtr amix s parametrem weights pro nastavení poměru hlasitosti jednotlivých stop, např.:
+  ffmpeg -i audio1.mp3 -i audio2.mp3 -filter_complex "[0:a]volume=0.7[a1];[1:a]volume=0.3[a2];[a1][a2]amix=inputs=2:duration=longest" output.mp3
+Hodnoty hlasitosti z posuvníků (0–100 %) preveď na volume= parametr (0.0–1.0) přímo podle pozice posuvníku.
+
+2. Video overlay (překrytí dvou videí s průhledností)
+
+Umožni nahrát dvě video stopy a zobrazit je překryté přes sebe s nastavitelnou průhledností (opacity) jednoho nad druhým.
+Přidej posuvník "% překrytí" (0–100 %) — 0 % = vidět jen spodní video, 100 % = vidět jen horní video, 50 % = napůl průhledný mix obou.
+Technicky: použij ffmpeg filtr overlay v kombinaci s blend nebo colorchannelmixer, případně jednodušeji přes blend=all_mode=normal:all_opacity=X, kde X je hodnota 0.0–1.0 podle posuvníku:
+  ffmpeg -i video1.mp4 -i video2.mp4 -filter_complex "[0:v][1:v]blend=all_mode=normal:all_opacity=0.5" output.mp4
+Obě videa by měla mít stejné rozlišení a délku — pokud se liší, buď je automaticky ořízni na kratší z nich, nebo je nejdřív přeškáluj (scale filtr), ať sedí na sebe.
+
+3. UI náhled
+
+Pro obě funkce (audio i video overlay) přidej jednoduchý live posuvník s okamžitým náhledem — při tažení posuvníku se hodnota v % zobrazuje vedle něj (např. "Video A: 60 % / Video B: 40 %"), a po puštění posuvníku se náhled přegeneruje.
+Přidej tlačítko "Exportovat výsledek", které uloží finální namixovaný soubor (audio i video verzi zvlášť, nebo dohromady, pokud jde o video s vlastním zvukem).
+
+4. Propojení s testovacími vzorky
+
+Tuhle funkci označ v UI jako "Nástroj pro vytváření testovacích vzorků" (ne jako hlavní funkci analýzy) — je to k tomu, abys sama mohla vytvořit uměle upravené soubory se známým výsledkem (např. "tohle video je namixované z 50 % s jiným zdrojem") a pak si ověřit, jestli to detekční pipeline správně pozná jako upravené.

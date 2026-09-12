@@ -1,0 +1,26 @@
+Prompt pro Replit Agent — oprava přehrávání videa a selhávající analýzy:
+
+Aplikace má dva problémy, které potřebuji opravit:
+
+Problém 1 — Analýza videa selhává
+
+Zkontroluj celou pipeline zpracování videa krok po kroku a najdi, kde přesně selhává:
+
+Přidej podrobné logování (logging modul) do každého analytického kroku zvlášť (metadata, komprese, střihy, snímky, audio, barvy) — ať je v logu jasně vidět, který konkrétní krok selhal a s jakou chybovou hláškou.
+Zkontroluj, zda jsou v prostředí nainstalované všechny potřebné nástroje a knihovny (ffmpeg, ffprobe, exiftool, PySceneDetect, OpenCV, librosa) — pokud něco chybí, doinstaluj to.
+Zkontroluj, zda cesta k nahranému souboru, se kterou pipeline pracuje, skutečně existuje v momentě spuštění analýzy (může jít o problém pořadí — analýza se spustí dřív, než je soubor plně nahraný/uložený na disk).
+Ověř, že volání Anthropic API (Interpret a Verifier agenti) mají správně nastavený ANTHROPIC_API_KEY a že request skutečně odchází — zkontroluj chybové odpovědi API, pokud nějaké přicházejí.
+Ujisti se, že pokud jeden dílčí krok selže, CELÁ analýza kvůli tomu nespadne — každý krok musí být obalený v try/except (jak bylo zadáno dřív), aby chyba v jednom kroku nezastavila zbytek pipeline.
+Po opravě otestuj na jednom konkrétním nahraném souboru a ukaž mi v odpovědi/logu, co přesně se stalo krok po kroku (úspěch/selhání každého dílčího kroku).
+
+Problém 2 — Přehrávač videa nefunguje
+
+Video se nepřehrává, zřejmě proto, že nahrané soubory nejsou trvale/dostupně uložené pro zpětné přehrání.
+
+Ověř, kam se nahrané video ukládá — musí být na stálé cestě na disku (nebo v úložišti), ne jen dočasně v paměti během zpracování.
+Vytvoř/oprav backendový endpoint pro servírování video souboru, např. GET /api/videos/{video_id}/stream, který najde soubor podle video_id, vrátí ho se správnou hlavičkou Content-Type a podporuje HTTP range requests (Range/Accept-Ranges: bytes) — bez toho HTML5 <video> element nedokáže přehrávat ani přetáčet.
+Oprav frontend přehrávač, aby <video> element měl src nastavený na tenhle endpoint, ne na dočasnou/lokální cestu.
+Zkontroluj, že se soubor po zpracování analýzy nemaže — pokud ano, zachovej kopii pro přehrávání a editaci.
+Otestuj: nahraj video, počkej na dokončení analýzy, přejdi na přehrávač, ověř přehrávání, přetáčení a frame-by-frame krokování.
+
+Obecně: po opravě obou problémů proveď end-to-end test — nahrání videa → úspěšné dokončení všech analytických kroků → zobrazení výsledku (verdikt od obou agentů) → možnost přehrát to samé video v přehrávači.
