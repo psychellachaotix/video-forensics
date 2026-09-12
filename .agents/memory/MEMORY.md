@@ -1,0 +1,7 @@
+- [Object Storage stream warning](object-storage-stream-warning.md) — current Google transport may emit a benign per-download listener warning inside teeny-request.
+- [AI video benchmark evidence](ai-video-benchmark-evidence.md) — benchmark conclusions require hashable media, documented truth, and production-shaped forensic captures.
+- [Stable video preview ranges](stable-video-preview-ranges.md) — transcoded previews must use one stable cached file so browser Range requests do not restart conversion.
+- [Preview and source duration drift](preview-source-duration-drift.md) — editor trim validation must tolerate small transcoding drift, then clamp export to the probed original.
+- [Truthful analysis progress](truthful-analysis-progress.md) — progress reflects real weighted phases; estimated movement stays inside the active phase and is labeled.
+- [Windows Electron builds on NixOS](windows-electron-builds-nixos.md) — portable builds need a Nix-compatible 7za; NSIS installers can be generated natively when Wine cannot run.
+- [Sandboxed Electron preload format](sandboxed-electron-preload-format.md) — keep context isolation and sandboxing, but compile preload as CommonJS and resolve main paths from import.meta.url.
